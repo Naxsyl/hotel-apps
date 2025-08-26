@@ -64,7 +64,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="" class="form-label">Nama Kamar *</label>
-                                    <select name="room_id" id="" class="form-control">
+                                    <select name="room_id" id="room_id" class="form-control">
                                         <option value="">Pilih Kamar</option>
                                         @foreach ($categories as $category)
                                             <option value="{{ $category->id }}">{{ $category->name }}</option>

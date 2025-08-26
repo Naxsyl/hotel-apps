@@ -87,12 +87,20 @@
     <script>
         // variabel
         let category_id = document.getElementById('category_id');
+        let room_id = document.getElementById('room_id');
         category_id.addEventListener('change', async function() {
-
+            room_id.innerHTML = "<option data-price value=''>Pilih Kamar..</option>";
             try {
                 const id_category = this.value;
                 const res = await fetch(`/get-room-by-category/${id_category}`);
                 const data = await res.json();
+                data.data.forEach(room => {
+                    const option = document.createElement('option');
+                    option.value = room.id;
+                    option.textContent = `${room.name}`;
+                    option.setAttribute('data-price', room.price);
+                    room_id.appendChild(option);
+                })
                 console.log("data", data);
             } catch (err) {
                 console.log("error", err);

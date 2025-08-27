@@ -33,7 +33,36 @@ class RevervationController extends Controller
      */
     public function store(Request $request)
     {
-        //
+         try {
+            $data = $request->validate([
+                'guest_name' => 'required',
+                'guest_email' => 'required|email',
+                'guest_phone' => 'required',
+                'guest_note' => 'nullable|string',
+                'guest_room_number' => 'nullable|string',
+                'guest_check_in' => 'required|date',
+                'guest_check_out' => 'required|date|after:checkin',
+                'payment_method' => 'required',
+                'room_id' => 'required',
+            ]);
+            $create = Revervations::create($data);
+            return response()->json(['status', 'message' => 'Reservation create success', 'data' => $create], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(
+                [
+                    'status' => 'Errorr',
+                    'message' => 'Validation error',
+                    'error' => $e->errors()
+                ],
+                422
+            );
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

@@ -8,6 +8,7 @@
     <title>{{ $title ?? 'Management Hotel' }}</title>
     <meta content="" name="description">
     <meta content="" name="keywords">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- Favicons -->
     <link href="{{ asset('assets/img/favicon.png') }}" rel="icon">
@@ -86,12 +87,26 @@
     <script src="{{ asset('assets/js/main.js') }}"></script>
     <script>
         // variabel
+        function rupiahFormat(number) {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR'
+            }).format(number);
+        }
+
         let category_id = document.getElementById('category_id');
         let room_id = document.getElementById('room_id');
+        const roomRateText = document.getElementById('roomRate');
+        const totalNightText = document.getElementById('totalNight');
+        const subtotalText = document.getElementById('subtotal');
+        const taxText = document.getElementById('tax');
+        const totalAmountText = document.getElementById('totalAmount');
+        let roomRate = 0;
+
         category_id.addEventListener('change', async function() {
+            const id_category = this.value;
             room_id.innerHTML = "<option data-price value=''>Pilih Kamar..</option>";
             try {
-                const id_category = this.value;
                 const res = await fetch(`/get-room-by-category/${id_category}`);
                 const data = await res.json();
                 data.data.forEach(room => {
@@ -100,13 +115,94 @@
                     option.textContent = `${room.name}`;
                     option.setAttribute('data-price', room.price);
                     room_id.appendChild(option);
-                })
+                });
                 console.log("data", data);
             } catch (err) {
                 console.log("error", err);
             }
+        });
 
+        room_id.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const price = selectedOption.getAttribute('data-price') || 0;
+            roomRate = parseFloat(price);
+            const rupiah = rupiahFormat(price);
+            roomRateText.textContent = rupiah;
 
+            calculateTotal(); // Hitung ulang kalau user pilih kamar setelah tanggal
+        });
+
+        const checkInInput = document.getElementById('checkin');
+        const checkOutInput = document.getElementById('checkout');
+
+        function calculateTotal() {
+            const checkin = new Date(checkInInput.value);
+            const checkout = new Date(checkOutInput.value);
+
+            if (checkin && checkout && checkout > checkin) {
+                const timeDiff = checkout - checkin;
+                const night = timeDiff / (1000 * 60 * 60 * 24); // 86.400.000
+
+                if (!roomRate || night <= 0) return;
+
+                const subTotal = roomRate * night;
+                const tax = subTotal * 0.1;
+                const grandTotal = subTotal + tax;
+
+                totalNightText.textContent = night;
+                subtotalText.textContent = rupiahFormat(subTotal);
+                taxText.textContent = rupiahFormat(tax);
+                totalAmountText.textContent = rupiahFormat(grandTotal);
+            }
+        }
+
+        checkInInput.addEventListener('change', calculateTotal);
+        checkOutInput.addEventListener('change', calculateTotal);
+
+        document.getElementById('save').addEventListener('click', async function() {
+            const guest_name = document.querySelector('input[name="guest_name"]').value;
+            const guest_email = document.querySelector('input[name="guest_email"]').value;
+            const guest_phone = document.querySelector('input[name="guest_phone"]').value;
+            const room_id = document.querySelector('#room_id').value;
+            const guest_room_number = document.querySelector('select[name="guest_room_number"]').value;
+            const guest_note = document.querySelector('textarea[name="guest_note"]').value;
+            const guest_check_in = document.querySelector('input[name="guest_check_in"]').value;
+            const guest_check_out = document.querySelector('input[name="guest_check_out"]').value;
+            const payment_method = document.querySelector('input[name="payment_method"]').value;
+            const token = document.querySelector("meta[name='csrf-token']")
+
+            const data = {
+                guest_name: guest_name,
+                guest_email: guest_email,
+                guest_phone: guest_phone,
+                room_id: room_id,
+                guest_room_number: guest_room_number,
+                guest_note: guest_note,
+                guest_check_in: guest_check_in,
+                guest_check_out: guest_check_out,
+                payment_method: payment_method
+            }
+
+            try {
+                const res = await fetch(`/revervation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        "X-CSRF-TOKEN": token
+                    },
+                    body: JSON.stringify(data)
+
+                });
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert("success");
+                }
+            } catch (error) {
+                console.log("error", error);
+                alert("Upss Reservasi Gagal!");
+            }
         })
     </script>
 
